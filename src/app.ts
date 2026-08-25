@@ -1,3 +1,4 @@
+// src/app.ts
 import { Elysia } from 'elysia';
 import { cors } from '@elysiajs/cors';
 import { images } from './routes/images';
@@ -11,6 +12,19 @@ export const app = new Elysia()
   .use(images)
   .use(videos)
   .onError(({ code, error, set }) => {
+    // 1. Handle Elysia's internal 404 NOT_FOUND
+    if (code === 'NOT_FOUND') {
+      set.status = 404;
+      return {
+        success: false,
+        error: {
+          code: 'NOT_FOUND',
+          message: 'The requested endpoint does not exist.'
+        }
+      };
+    }
+
+    // 2. Handle our custom AppErrors
     if (error instanceof AppError) {
       set.status = error.statusCode;
       return {
@@ -21,6 +35,8 @@ export const app = new Elysia()
         }
       };
     }
+
+    // 3. Handle Validation Errors
     if (code === 'VALIDATION') {
       set.status = 400;
       return {
@@ -31,6 +47,8 @@ export const app = new Elysia()
         }
       };
     }
+
+    // 4. Fallback for actual server crashes
     console.error(error);
     set.status = 500;
     return {
